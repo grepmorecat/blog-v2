@@ -1,117 +1,82 @@
-import { IdAttributePlugin, InputPathToUrlTransformPlugin, HtmlBasePlugin } from "@11ty/eleventy";
-import pluginSyntaxHighlight from "@11ty/eleventy-plugin-syntaxhighlight";
-import { eleventyImageTransformPlugin } from "@11ty/eleventy-img";
-import pluginFilters from "./_config/filters.js";
+import { execFileSync } from "node:child_process";
+import { InputPathToUrlTransformPlugin, HtmlBasePlugin } from "@11ty/eleventy";
 
-export default async function(eleventyConfig) {
-	// Drafts, see also _data/eleventyDataSchema.js
-	eleventyConfig.addPreprocessor("drafts", "*", (data, content) => {
-		if (data.draft) {
-			data.title = `${data.title} (draft)`;
+function getGitAuthorDate(inputPath) {
+	try {
+		const isoDate = execFileSync(
+			"git",
+			["log", "-1", "--format=%aI", "--", inputPath],
+			{ encoding: "utf8" }
+		).trim();
+
+		if (!isoDate) {
+			return "";
 		}
 
-		if(data.draft && process.env.ELEVENTY_RUN_MODE === "build") {
-			return false;
-		}
+		return new Intl.DateTimeFormat("en-GB", {
+			year: "numeric",
+			month: "long",
+			day: "numeric",
+		}).format(new Date(isoDate));
+	} catch {
+		return "";
+	}
+}
+
+
+export default async function (eleventyConfig) {
+
+	eleventyConfig.addTemplateFormats("txt");
+
+	eleventyConfig.addExtension("txt", {
+		outputFileExtension: "html",
+
+		compile(inputContent) {
+			return function () {
+				return inputContent;
+			};
+		},
 	});
 
-	// Copy the contents of the `public` folder to the output folder
-	// For example, `./public/css/` ends up in `_site/css/`
-	eleventyConfig
-		.addPassthroughCopy({
-			"./public/": "/"
-		})
-		.addPassthroughCopy("./content/feed/pretty-atom-feed.xsl");
-
-	// Run Eleventy when these files change:
-	// https://www.11ty.dev/docs/watch-serve/#add-your-own-watch-targets
-
-	// Watch CSS files
-	eleventyConfig.addWatchTarget("css/**/*.css");
-	// Watch images for the image pipeline.
-	eleventyConfig.addWatchTarget("content/**/*.{svg,webp,png,jpg,jpeg,gif}");
-
-	// Per-page bundles, see https://github.com/11ty/eleventy-plugin-bundle
-	// Bundle <style> content and adds a {% css %} paired shortcode
-	eleventyConfig.addBundle("css", {
-		toFileDirectory: "dist",
-		// Add all <style> content to `css` bundle (use <style eleventy:ignore> to opt-out)
-		// Supported selectors: https://www.npmjs.com/package/posthtml-match-helper
-		bundleHtmlContentFromSelector: "style",
-	});
-
-	// Bundle <script> content and adds a {% js %} paired shortcode
-	eleventyConfig.addBundle("js", {
-		toFileDirectory: "dist",
-		// Add all <script> content to the `js` bundle (use <script eleventy:ignore> to opt-out)
-		// Supported selectors: https://www.npmjs.com/package/posthtml-match-helper
-		bundleHtmlContentFromSelector: "script",
-	});
-
-	// Official plugins
-	eleventyConfig.addPlugin(pluginSyntaxHighlight, {
-		preAttributes: { tabindex: 0 }
-	});
 	eleventyConfig.addPlugin(HtmlBasePlugin);
 	eleventyConfig.addPlugin(InputPathToUrlTransformPlugin);
 
-
-	// Image optimization: https://www.11ty.dev/docs/plugins/image/#eleventy-transform
-	eleventyConfig.addPlugin(eleventyImageTransformPlugin, {
-		// Output formats for each image.
-		formats: ["avif", "webp", "auto"],
-
-		// widths: ["auto"],
-
-		failOnError: false,
-		htmlOptions: {
-			imgAttributes: {
-				// e.g. <img loading decoding> assigned on the HTML tag will override these values.
-				loading: "lazy",
-				decoding: "async",
-			}
-		},
-
-		sharpOptions: {
-			animated: true,
-		},
+	eleventyConfig.addShortcode("gitAuthorDate", function (inputPath) {
+		return getGitAuthorDate(inputPath);
 	});
 
-	// Filters
-	eleventyConfig.addPlugin(pluginFilters);
+	eleventyConfig.addTemplate("index.njk", `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Home</title>
+</head>
 
-	eleventyConfig.addPlugin(IdAttributePlugin, {
-		// by default we use Eleventy’s built-in `slugify` filter:
-		// slugify: eleventyConfig.getFilter("slugify"),
-		// selector: "h1,h2,h3,h4,h5,h6", // default
-	});
+<body>
+  <header>
+    <h1>Home</h1>
+  </header>
 
-	eleventyConfig.addShortcode("currentBuildDate", () => {
-		return (new Date()).toISOString();
-	});
+  <main>
+    <h2>Posts</h2>
 
-	// Features to make your build faster (when you need them)
+    <ul>
+      {% for post in collections.posts %}
+        <li>
+          <a href="{{ post.url }}">{{ post.fileSlug }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  </main>
+</body>
+</html>`);
 
-	// If your passthrough copy gets heavy and cumbersome, add this line
-	// to emulate the file copy on the dev server. Learn more:
-	// https://www.11ty.dev/docs/copy/#emulate-passthrough-copy-during-serve
-
-	// eleventyConfig.setServerPassthroughCopyBehavior("passthrough");
 };
 
 export const config = {
-	// Control which files Eleventy will process
-	// e.g.: *.md, *.njk, *.html, *.liquid
-	templateFormats: [
-		"md",
-		"njk",
-		"html",
-		"liquid",
-		"11ty.js",
-	],
+	templateFormats: ["md", "txt"],
 
 	markdownTemplateEngine: "njk",
-	htmlTemplateEngine: "njk",
 
 	dir: {
 		input: "content",          // default: "."
@@ -119,17 +84,6 @@ export const config = {
 		data: "../_data",          // default: "_data" (`input` relative)
 		output: "_site"
 	},
-
-	// -----------------------------------------------------------------
-	// Optional items:
-	// -----------------------------------------------------------------
-
-	// If your site deploys to a subdirectory, change `pathPrefix`.
-	// Read more: https://www.11ty.dev/docs/config/#deploy-to-a-subdirectory-with-a-path-prefix
-
-	// When paired with the HTML <base> plugin https://www.11ty.dev/docs/plugins/html-base/
-	// it will transform any absolute URLs in your HTML to include this
-	// folder name and does **not** affect where things go in the output folder.
 
 	// pathPrefix: "/",
 };
