@@ -127,9 +127,9 @@ export const config = {
 
 	dir: {
 		input: "../content",
-		includes: "_includes",
-		data: "_data",
-		output: "_site"
+		includes: "../builder/_includes",
+		data: "../builder/_data",
+		output: "./_site"
 	},
 
 	// pathPrefix: "/",
