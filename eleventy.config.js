@@ -3,7 +3,18 @@ import { InputPathToUrlTransformPlugin, HtmlBasePlugin } from "@11ty/eleventy";
 
 function getGitAuthorDate(inputPath) {
 	try {
-		const relativePath = inputPath.replace(/^content\//, "");
+		if (!inputPath) {
+			return "";
+		}
+
+		if (!inputPath.startsWith("../content/") && !inputPath.startsWith("content/")) {
+			return "";
+		}
+
+		const relativePath = inputPath
+			.replace(/^\.\.\/content\//, "")
+			.replace(/^content\//, "");
+
 		const isoDate = execFileSync(
 			"git",
 			["log", "-1", "--format=%aI", "--", relativePath],
