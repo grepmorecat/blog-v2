@@ -126,9 +126,9 @@ export const config = {
 	markdownTemplateEngine: "njk",
 
 	dir: {
-		input: "content",
-		includes: "../builder/_includes",
-		data: "../builder/_data",
+		input: "../content",
+		includes: "_includes",
+		data: "_data",
 		output: "_site"
 	},
 
