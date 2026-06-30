@@ -1,0 +1,74 @@
+
+name: Build and Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: builder
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with: 
+          path: builder
+
+      - name: Checkout content repo
+        uses: actions/checkout@v7
+        with:
+          repository: grepmorecat/blog-content
+          path: content
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: builder/package-lock.json
+
+      - name: Cache Eleventy .cache
+        uses: actions/cache@v5
+        with:
+          path: ./.cache
+          key: ${{ runner.os }}-eleventy-${{ hashFiles('builder/package-lock.json') }}
+
+      - run: npm ci
+      - run: npm run build-ghpages
+
+      - name: Upload static files as artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: builder/_site/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

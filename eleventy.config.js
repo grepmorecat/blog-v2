@@ -3,10 +3,14 @@ import { InputPathToUrlTransformPlugin, HtmlBasePlugin } from "@11ty/eleventy";
 
 function getGitAuthorDate(inputPath) {
 	try {
+		const relativePath = inputPath.replace(/^content\//, "");
 		const isoDate = execFileSync(
 			"git",
-			["log", "-1", "--format=%aI", "--", inputPath],
-			{ encoding: "utf8" }
+			["log", "-1", "--format=%aI", "--", relativePath],
+			{
+				encoding: "utf8",
+				cwd: "../content",
+			}
 		).trim();
 
 		if (!isoDate) {
@@ -45,7 +49,8 @@ export default async function (eleventyConfig) {
 		return getGitAuthorDate(inputPath);
 	});
 
-	eleventyConfig.addTemplate("index.njk", `<!doctype html>
+	eleventyConfig.addTemplate("index.njk", `
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -71,6 +76,48 @@ export default async function (eleventyConfig) {
 </body>
 </html>`);
 
+
+	eleventyConfig.addTemplate("layouts/post.njk", `
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title or page.fileSlug }}</title>
+</head>
+
+<body>
+  <header>
+    <h1>{{ title or page.fileSlug }}</h1>
+    <p>
+      Authored:
+      {% gitAuthorDate page.inputPath %}
+    </p>
+  </header>
+
+  <main>
+    {{ content | safe }}
+  </main>
+</body>
+</html>
+`);
+
+
+	eleventyConfig.addGlobalData("eleventyComputed", {
+		layout: (data) => {
+			if (data.page.inputPath?.includes("index.njk")) {
+				return false;
+			}
+			return "layouts/post.njk";
+		},
+
+		tags: (data) => {
+			if (data.page.inputPath?.includes("index.njk")) {
+				return [];
+			}
+			return "posts";
+		},
+	});
+
 };
 
 export const config = {
@@ -79,9 +126,9 @@ export const config = {
 	markdownTemplateEngine: "njk",
 
 	dir: {
-		input: "content",          // default: "."
-		includes: "../_includes",  // default: "_includes" (`input` relative)
-		data: "../_data",          // default: "_data" (`input` relative)
+		input: "content",
+		includes: "../builder/_includes",
+		data: "../builder/_data",
 		output: "_site"
 	},
 
