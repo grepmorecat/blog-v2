@@ -87,32 +87,6 @@ export default async function (eleventyConfig) {
 </body>
 </html>`);
 
-
-	eleventyConfig.addTemplate("layouts/post.njk", `
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>{{ title or page.fileSlug }}</title>
-</head>
-
-<body>
-  <header>
-    <h1>{{ title or page.fileSlug }}</h1>
-    <p>
-      Authored:
-      {% gitAuthorDate page.inputPath %}
-    </p>
-  </header>
-
-  <main>
-    {{ content | safe }}
-  </main>
-</body>
-</html>
-`);
-
-
 	eleventyConfig.addGlobalData("eleventyComputed", {
 		layout: (data) => {
 			if (data.page.inputPath?.includes("index.njk")) {
