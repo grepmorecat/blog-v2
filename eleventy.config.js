@@ -121,7 +121,7 @@ export default async function (eleventyConfig) {
 };
 
 export const config = {
-	templateFormats: ["md", "txt"],
+	templateFormats: ["md", "txt", "njk"],
 
 	markdownTemplateEngine: "njk",
 
