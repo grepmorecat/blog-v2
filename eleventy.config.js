@@ -94,13 +94,10 @@ export default async function (eleventyConfig) {
 			}
 			return "layouts/post.njk";
 		},
+	});
 
-		tags: (data) => {
-			if (data.page.inputPath?.includes("index.njk")) {
-				return [];
-			}
-			return "posts";
-		},
+	eleventyConfig.addCollection("posts", function (collectionApi) {
+		return collectionApi.getFilteredByGlob("../content/*.{md,txt}");
 	});
 
 };
