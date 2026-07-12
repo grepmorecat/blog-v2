@@ -17,7 +17,7 @@ function getGitAuthorDate(inputPath) {
 
 		const isoDate = execFileSync(
 			"git",
-			["log", "-1", "--format=%aI", "--", relativePath],
+			["log", "--follow", "--format=%aI", "--", relativePath],
 			{
 				encoding: "utf8",
 				cwd: "../content",
