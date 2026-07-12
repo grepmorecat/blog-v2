@@ -40,6 +40,7 @@ function getGitAuthorDate(inputPath) {
 
 
 export default async function (eleventyConfig) {
+	eleventyConfig.ignores.add("../content/private/**");
 
 	eleventyConfig.addTemplateFormats("txt");
 

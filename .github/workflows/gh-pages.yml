@@ -34,7 +34,9 @@ jobs:
         with:
           repository: grepmorecat/blog-content
           path: content
+          token: ${{ secrets.CONTENT_REPO_TOKEN }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v6
